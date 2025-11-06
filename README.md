@@ -7,6 +7,8 @@ This app is build for my
 
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue)](https://www.typescriptlang.org/)
+[![OpenAI](https://img.shields.io/badge/OpenAI_API-GPT--4o--mini-412991?logo=openai&logoColor=white)](https://platform.openai.com/)
+[![GitHub](https://img.shields.io/badge/GitHub-API-black?logo=github)](https://github.com/)
 
 ---
 
