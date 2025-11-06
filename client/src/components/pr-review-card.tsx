@@ -95,7 +95,7 @@ export function PRReviewCard({ review }: PRReviewCardProps) {
       
       <CardContent className="pt-0">
         {review.summary && (
-          <p className="text-sm text-muted-foreground mb-4 line-clamp-2" data-testid={`text-summary-${review.id}`}>
+          <p className={`text-sm mb-4 line-clamp-2 ${review.status === 'error' ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`} data-testid={`text-summary-${review.id}`}>
             {review.summary}
           </p>
         )}

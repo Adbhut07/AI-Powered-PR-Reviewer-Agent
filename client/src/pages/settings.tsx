@@ -77,7 +77,7 @@ export default function Settings() {
                     variant="outline"
                     size="icon"
                     onClick={copyToClipboard}
-                    data-testid="button-copy-url"
+                    data-testid="button-copy-webhook-url"
                     aria-label="Copy webhook URL"
                   >
                     {copied ? (

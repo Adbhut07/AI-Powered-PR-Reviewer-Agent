@@ -11,9 +11,23 @@ export function verifyWebhookSignature(
   signature: string,
   secret: string
 ): boolean {
-  const hmac = crypto.createHmac("sha256", secret);
-  const digest = "sha256=" + hmac.update(payload).digest("hex");
-  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest));
+  try {
+    const hmac = crypto.createHmac("sha256", secret);
+    const digest = "sha256=" + hmac.update(payload).digest("hex");
+    
+    // Ensure both buffers are the same length to prevent timing attacks
+    const sigBuffer = Buffer.from(signature);
+    const digestBuffer = Buffer.from(digest);
+    
+    if (sigBuffer.length !== digestBuffer.length) {
+      return false;
+    }
+    
+    return crypto.timingSafeEqual(sigBuffer, digestBuffer);
+  } catch (error) {
+    console.error("Error verifying webhook signature:", error);
+    return false;
+  }
 }
 
 export async function getPRFiles(owner: string, repo: string, prNumber: number) {
