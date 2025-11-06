@@ -6,18 +6,6 @@ import { verifyWebhookSignature, getPRFiles, getPRDetails, postReviewComment } f
 import { analyzePRChanges } from "./lib/openai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Middleware to parse raw body for webhook verification
-  app.use("/api/webhook", (req, res, next) => {
-    let data = "";
-    req.on("data", (chunk) => {
-      data += chunk;
-    });
-    req.on("end", () => {
-      (req as any).rawBody = data;
-      next();
-    });
-  });
-
   // Get all PR reviews
   app.get("/api/reviews", async (_req: Request, res: Response) => {
     try {
@@ -68,7 +56,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const signature = req.headers["x-hub-signature-256"] as string;
       const rawBody = (req as any).rawBody;
 
+      console.log("Webhook received:", {
+        hasSignature: !!signature,
+        hasRawBody: !!rawBody,
+        hasBody: !!req.body,
+        contentType: req.headers['content-type']
+      });
+
       if (!signature || !rawBody) {
+        console.error("Missing signature or body", { hasSignature: !!signature, hasRawBody: !!rawBody });
         return res.status(400).json({ error: "Missing signature or body" });
       }
 
@@ -79,78 +75,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Webhook secret not configured" });
       }
 
-      if (!verifyWebhookSignature(rawBody, signature, webhookSecret)) {
+      const rawBodyString = Buffer.isBuffer(rawBody) ? rawBody.toString('utf8') : rawBody;
+      
+      if (!verifyWebhookSignature(rawBodyString, signature, webhookSecret)) {
         console.error("Invalid webhook signature");
         return res.status(401).json({ error: "Invalid signature" });
       }
 
-      const event: WebhookEvent = JSON.parse(rawBody);
-      const action = event.action;
-
-      // Log webhook event
-      await storage.createActivityLog({
-        eventType: "webhook_received",
-        message: `Webhook received: ${action} on PR #${event.pull_request.number}`,
-        metadata: {
-          action,
-          prNumber: event.pull_request.number,
-          repository: event.repository.full_name,
-        },
-      });
-
-      // Only process opened, synchronize (updated), and reopened events
-      if (!["opened", "synchronize", "reopened"].includes(action)) {
-        return res.json({ message: "Event acknowledged but not processed" });
-      }
-
-      const pr = event.pull_request;
-      const owner = event.repository.owner.login;
-      const repo = event.repository.name;
-      const prNumber = pr.number;
-
-      // Log PR opened event
-      await storage.createActivityLog({
-        eventType: "pr_opened",
-        message: `PR #${prNumber} ${action}: ${pr.title}`,
-        metadata: {
-          prNumber,
-          repository: event.repository.full_name,
-          author: pr.user.login,
-        },
-      });
-
-      // Create or update review record
-      let review = await storage.getPRReviewByPR(prNumber, event.repository.full_name);
+      const event: WebhookEvent = req.body; // Use parsed body from express.json()
       
-      if (!review) {
-        review = await storage.createPRReview({
-          prNumber,
-          prTitle: pr.title,
-          repository: event.repository.full_name,
-          repositoryOwner: owner,
-          author: pr.user.login,
-          status: "pending",
-          findings: [],
-          summary: null,
-          prUrl: pr.html_url,
-          headSha: pr.head.sha,
+      // Log the event action to help debug
+      console.log("Webhook event action:", event?.action);
+      
+      // Validate webhook payload structure
+      if (!event || !event.pull_request || !event.repository) {
+        console.error("Invalid webhook payload structure", { 
+          hasEvent: !!event, 
+          hasPR: !!event?.pull_request, 
+          hasRepo: !!event?.repository,
+          action: event?.action
         });
-      } else {
-        await storage.updatePRReview(review.id, {
-          status: "in_progress",
-          headSha: pr.head.sha,
-        });
+        // Return 200 for non-PR events to acknowledge receipt
+        if (event && !event.pull_request) {
+          console.log("Ignoring non-pull_request event");
+          return res.status(200).json({ message: "Event acknowledged but not a pull_request event" });
+        }
+        return res.status(400).json({ error: "Invalid webhook payload" });
       }
 
-      // Start async review process (don't wait for it)
-      processPRReview(owner, repo, prNumber, review.id).catch((error) => {
-        console.error("Error processing PR review:", error);
-      });
+      const action = event.action;
+      const prNumber = event.pull_request.number;
 
-      res.json({ message: "Webhook received, review started" });
+      console.log(`Webhook received: ${action} on PR #${prNumber} from ${event.repository.full_name}`);
+
+      // Respond immediately to GitHub
+      res.status(202).json({ message: "Webhook received, processing started" });
+
+      // Process asynchronously after response is sent
+      setImmediate(async () => {
+        try {
+          // Log webhook event
+          await storage.createActivityLog({
+            eventType: "webhook_received",
+            message: `Webhook received: ${action} on PR #${event.pull_request.number}`,
+            metadata: {
+              action,
+              prNumber: event.pull_request.number,
+              repository: event.repository.full_name,
+            },
+          });
+
+          // Only process opened, synchronize (updated), and reopened events
+          if (!["opened", "synchronize", "reopened"].includes(action)) {
+            console.log(`Skipping action: ${action}`);
+            return;
+          }
+
+          const pr = event.pull_request;
+          const owner = event.repository.owner.login;
+          const repo = event.repository.name;
+          const prNumber = pr.number;
+
+          console.log(`Processing PR review: owner=${owner}, repo=${repo}, PR=${prNumber}`);
+
+          // Log PR opened event
+          await storage.createActivityLog({
+            eventType: "pr_opened",
+            message: `PR #${prNumber} ${action}: ${pr.title}`,
+            metadata: {
+              prNumber,
+              repository: event.repository.full_name,
+              author: pr.user.login,
+            },
+          });
+
+          // Create or update review record
+          let review = await storage.getPRReviewByPR(prNumber, event.repository.full_name);
+          
+          if (!review) {
+            review = await storage.createPRReview({
+              prNumber,
+              prTitle: pr.title,
+              repository: event.repository.full_name,
+              repositoryOwner: owner,
+              author: pr.user.login,
+              status: "pending",
+              findings: [],
+              summary: null,
+              prUrl: pr.html_url,
+              headSha: pr.head.sha,
+            });
+          } else {
+            await storage.updatePRReview(review.id, {
+              status: "in_progress",
+              headSha: pr.head.sha,
+            });
+          }
+
+          // Start async review process
+          processPRReview(owner, repo, prNumber, review.id).catch((error) => {
+            console.error("Error processing PR review:", error);
+          });
+        } catch (error) {
+          console.error("Error in webhook processing:", error);
+        }
+      });
     } catch (error) {
       console.error("Webhook error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      
+      // If we haven't sent a response yet, send error response
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Internal server error" });
+      }
     }
   });
 

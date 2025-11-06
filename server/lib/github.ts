@@ -31,23 +31,51 @@ export function verifyWebhookSignature(
 }
 
 export async function getPRFiles(owner: string, repo: string, prNumber: number) {
-  const { data: files } = await octokit.pulls.listFiles({
-    owner,
-    repo,
-    pull_number: prNumber,
-  });
-
-  return files;
+  try {
+    console.log(`Fetching PR files: owner=${owner}, repo=${repo}, PR=${prNumber}`);
+    const { data: files } = await octokit.pulls.listFiles({
+      owner,
+      repo,
+      pull_number: prNumber,
+    });
+    console.log(`Successfully fetched ${files.length} files for PR #${prNumber}`);
+    return files;
+  } catch (error: any) {
+    console.error(`Failed to fetch PR files: ${error.message}`);
+    console.error(`Request details: owner=${owner}, repo=${repo}, PR=${prNumber}`);
+    if (error.status === 404) {
+      console.error("404 Error: PR not found. Please check:");
+      console.error("1. The repository name and owner are correct");
+      console.error("2. The PR number exists");
+      console.error("3. Your GitHub token has 'pull_requests: read' permission");
+      console.error("4. Your GitHub token has access to this repository");
+    }
+    throw error;
+  }
 }
 
 export async function getPRDetails(owner: string, repo: string, prNumber: number) {
-  const { data: pr } = await octokit.pulls.get({
-    owner,
-    repo,
-    pull_number: prNumber,
-  });
-
-  return pr;
+  try {
+    console.log(`Fetching PR details: owner=${owner}, repo=${repo}, PR=${prNumber}`);
+    const { data: pr } = await octokit.pulls.get({
+      owner,
+      repo,
+      pull_number: prNumber,
+    });
+    console.log(`Successfully fetched PR #${prNumber} details`);
+    return pr;
+  } catch (error: any) {
+    console.error(`Failed to fetch PR details: ${error.message}`);
+    console.error(`Request details: owner=${owner}, repo=${repo}, PR=${prNumber}`);
+    if (error.status === 404) {
+      console.error("404 Error: PR not found. Please check:");
+      console.error("1. The repository name and owner are correct");
+      console.error("2. The PR number exists");
+      console.error("3. Your GitHub token has 'pull_requests: read' permission");
+      console.error("4. Your GitHub token has access to this repository");
+    }
+    throw error;
+  }
 }
 
 export async function postReviewComment(

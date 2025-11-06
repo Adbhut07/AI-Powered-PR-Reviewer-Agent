@@ -47,8 +47,11 @@ Please analyze this PR and respond with a JSON object containing:
 Focus on actionable feedback. If no significant issues are found, still provide constructive suggestions.`;
 
   try {
+    // Use GPT-4o-mini for cost-effective PR reviews
+    // Costs: ~$0.15 per 1M input tokens, ~$0.60 per 1M output tokens
+    // Alternative: "gpt-4o" for better quality at higher cost
     const response = await openai.chat.completions.create({
-      model: "gpt-5",
+      model: "gpt-4o-mini", // Changed from gpt-5 to reduce costs
       messages: [
         {
           role: "system",

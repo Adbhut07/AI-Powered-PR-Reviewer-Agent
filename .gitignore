@@ -4,3 +4,16 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# Environment variables
+.env
+.env.local
+
+# Database
+migrations/
+
+# Replit-specific files (not needed for general deployment)
+.replit
+replit.nix
+.config/
+.local/
