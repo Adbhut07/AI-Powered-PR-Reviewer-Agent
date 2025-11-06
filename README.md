@@ -1,8 +1,10 @@
 # 🤖 AI PR Reviewer
 
-An intelligent AI-powered tool that automatically reviews GitHub Pull Requests and provides detailed, actionable feedback on code quality, security vulnerabilities, best practices, and potential bugs.
+An intelligent AI-powered Agentic tool that automatically reviews GitHub Pull Requests and provides detailed, actionable feedback on code quality, security vulnerabilities, best practices, and potential bugs. 
+This app is build for my 
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+**Note:** This AI-powered agent was originally built as a supporting tool for one of my other projects — designed to automatically review GitHub Pull Requests with intelligent, actionable insights.
+
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue)](https://www.typescriptlang.org/)
 
@@ -12,7 +14,6 @@ An intelligent AI-powered tool that automatically reviews GitHub Pull Requests a
 
 - [Features](#-features)
 - [Demo](#-demo)
-- [Architecture](#-architecture)
 - [Prerequisites](#-prerequisites)
 - [Installation](#-installation)
 - [Configuration](#-configuration)
@@ -29,7 +30,6 @@ An intelligent AI-powered tool that automatically reviews GitHub Pull Requests a
 - [Cost Optimization](#-cost-optimization)
 - [Security](#-security)
 - [Contributing](#-contributing)
-- [License](#-license)
 
 ---
 
@@ -66,38 +66,6 @@ An intelligent AI-powered tool that automatically reviews GitHub Pull Requests a
 
 ---
 
-## 🏗️ Architecture
-
-```
-┌─────────────┐
-│   GitHub    │
-│  Repository │
-└──────┬──────┘
-       │ Webhook
-       ↓
-┌─────────────────┐
-│   Express API   │
-│  (Node.js)      │
-├─────────────────┤
-│  - Webhook      │
-│  - GitHub API   │
-│  - OpenAI API   │
-└──────┬──────────┘
-       │
-       ↓
-┌─────────────────┐
-│  PostgreSQL DB  │
-│  (Drizzle ORM)  │
-└─────────────────┘
-
-┌─────────────────┐
-│   React App     │
-│  (Dashboard)    │
-└─────────────────┘
-```
-
----
-
 ## 📋 Prerequisites
 
 Before you begin, ensure you have:
@@ -115,8 +83,8 @@ Before you begin, ensure you have:
 ### 1. Clone the Repository
 
 ```bash
-git clone <your-repo-url>
-cd AIPRReviewer
+git clone https://github.com/Adbhut07/AI-Powered-PR-Reviewer-Agent
+cd AI-Powered-PR-Reviewer-Agent
 ```
 
 ### 2. Install Dependencies
@@ -304,13 +272,6 @@ New OpenAI accounts receive **$5 in free credits** (expires after 3 months).
 2. Create a new project
 3. Copy the connection string
 4. Paste in `.env` as `DATABASE_URL`
-
-#### Supabase (Free Tier Available)
-1. Sign up: https://supabase.com/
-2. Create a new project
-3. Go to Settings → Database
-4. Copy the connection string (use "Connection pooling")
-5. Paste in `.env` as `DATABASE_URL`
 
 ### Initialize Database Schema
 
@@ -513,7 +474,7 @@ node verify-github-token.js    # Verify GitHub token permissions
 ## 📁 Project Structure
 
 ```
-AIPRReviewer/
+AI-Powered-PR-Reviewer-Agent/
 ├── client/                    # Frontend React application
 │   ├── public/               # Static assets
 │   └── src/
@@ -778,29 +739,5 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- Built with [OpenAI GPT-4o-mini](https://platform.openai.com/)
-- UI components from [shadcn/ui](https://ui.shadcn.com/)
-- Icons from [Lucide](https://lucide.dev/)
-- Powered by [GitHub API](https://docs.github.com/en/rest)
-
----
-
-## � Support
-
-For issues, questions, or feature requests:
-- 📧 Check the [Troubleshooting](#-troubleshooting) section
-- 🐛 Open an issue on GitHub
-- 📖 Review the documentation above
 
 ---
