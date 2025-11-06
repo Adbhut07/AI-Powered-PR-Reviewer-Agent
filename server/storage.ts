@@ -1,37 +1,102 @@
-import { type User, type InsertUser } from "@shared/schema";
+import { 
+  type PRReview, 
+  type InsertPRReview, 
+  type ActivityLog, 
+  type InsertActivityLog 
+} from "@shared/schema";
 import { randomUUID } from "crypto";
 
-// modify the interface with any CRUD methods
-// you might need
-
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  // PR Reviews
+  createPRReview(review: InsertPRReview): Promise<PRReview>;
+  getPRReview(id: string): Promise<PRReview | undefined>;
+  getPRReviewByPR(prNumber: number, repository: string): Promise<PRReview | undefined>;
+  getAllPRReviews(): Promise<PRReview[]>;
+  updatePRReview(id: string, updates: Partial<PRReview>): Promise<PRReview | undefined>;
+
+  // Activity Logs
+  createActivityLog(log: InsertActivityLog): Promise<ActivityLog>;
+  getAllActivityLogs(limit?: number): Promise<ActivityLog[]>;
+  getActivityLogsToday(): Promise<number>;
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<string, User>;
+  private prReviews: Map<string, PRReview>;
+  private activityLogs: Map<string, ActivityLog>;
 
   constructor() {
-    this.users = new Map();
+    this.prReviews = new Map();
+    this.activityLogs = new Map();
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  // PR Reviews
+  async createPRReview(insertReview: InsertPRReview): Promise<PRReview> {
+    const id = randomUUID();
+    const review: PRReview = {
+      ...insertReview,
+      id,
+      findings: (insertReview.findings as any) ?? [],
+      summary: insertReview.summary ?? null,
+      reviewedAt: new Date(),
+    };
+    this.prReviews.set(id, review);
+    return review;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
+  async getPRReview(id: string): Promise<PRReview | undefined> {
+    return this.prReviews.get(id);
+  }
+
+  async getPRReviewByPR(prNumber: number, repository: string): Promise<PRReview | undefined> {
+    return Array.from(this.prReviews.values()).find(
+      (review) => review.prNumber === prNumber && review.repository === repository
     );
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async getAllPRReviews(): Promise<PRReview[]> {
+    const reviews = Array.from(this.prReviews.values());
+    return reviews.sort((a, b) => 
+      new Date(b.reviewedAt!).getTime() - new Date(a.reviewedAt!).getTime()
+    );
+  }
+
+  async updatePRReview(id: string, updates: Partial<PRReview>): Promise<PRReview | undefined> {
+    const review = this.prReviews.get(id);
+    if (!review) return undefined;
+    
+    const updated = { ...review, ...updates };
+    this.prReviews.set(id, updated);
+    return updated;
+  }
+
+  // Activity Logs
+  async createActivityLog(insertLog: InsertActivityLog): Promise<ActivityLog> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+    const log: ActivityLog = {
+      ...insertLog,
+      id,
+      metadata: (insertLog.metadata as Record<string, any>) ?? null,
+      timestamp: new Date(),
+    };
+    this.activityLogs.set(id, log);
+    return log;
+  }
+
+  async getAllActivityLogs(limit: number = 50): Promise<ActivityLog[]> {
+    const logs = Array.from(this.activityLogs.values());
+    const sorted = logs.sort((a, b) => 
+      new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime()
+    );
+    return sorted.slice(0, limit);
+  }
+
+  async getActivityLogsToday(): Promise<number> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return Array.from(this.activityLogs.values()).filter(
+      (log) => new Date(log.timestamp!).getTime() >= today.getTime()
+    ).length;
   }
 }
 

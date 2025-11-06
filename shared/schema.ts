@@ -24,7 +24,7 @@ export const activityLogs = pgTable("activity_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   eventType: text("event_type").notNull(), // 'pr_opened', 'review_completed', 'comment_posted', 'webhook_received'
   message: text("message").notNull(),
-  metadata: jsonb("metadata").$type<Record<string, any>>(),
+  metadata: jsonb("metadata").$type<Record<string, any> | null>(),
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
